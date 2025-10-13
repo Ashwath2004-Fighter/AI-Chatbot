@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gemini 2.0 Flash Chatbot</title>
+  <style>
+    :root {
+      --primary-color: #10a37f;
+      --primary-hover: #0d8c6d;
+      --user-msg-bg: #f7f7f8;
+      --bot-msg-bg: #ffffff;
+      --border-color: #e5e5e5;
+      --text-color: #343541;
+      --light-text: #6e6e80;
+      --shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: #ffffff;
+      color: var(--text-color);
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 20px;
+      border-bottom: 1px solid var(--border-color);
+      background-color: #ffffff;
+    }
+
+    .header h1 {
+      font-size: 18px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 10px;
+    }
+
+    .header-actions button {
+      background: none;
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      padding: 6px 10px;
+      font-size: 13px;
+      cursor: pointer;
+      color: var(--light-text);
+    }
+
+    .header-actions button:hover {
+      background-color: #f7f7f8;
+    }
+
+    .chat-container {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      max-width: 800px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    #messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .message {
+      display: flex;
+      gap: 16px;
+      max-width: 100%;
+    }
+
+    .message-avatar {
+      width: 30px;
+      height: 30px;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      font-size: 14px;
+      flex-shrink: 0;
+    }
+
+    .user .message-avatar {
+      background-color: #10a37f;
+      color: white;
+    }
+
+    .bot .message-avatar {
+      background-color: #ececf1;
+      color: #565869;
+    }
+
+    .message-content {
+      flex: 1;
+      padding-top: 5px;
+      line-height: 1.5;
+    }
+
+    .user .message-content {
+      background-color: var(--user-msg-bg);
+      padding: 16px;
+      border-radius: 8px;
+      border-top-left-radius: 0;
+    }
+
+    .bot .message-content {
+      background-color: var(--bot-msg-bg);
+      padding: 16px;
+      border-radius: 8px;
+      border-top-right-radius: 0;
+      border: 1px solid var(--border-color);
+    }
+
+    .input-container {
+      padding: 20px;
+      border-top: 1px solid var(--border-color);
+      background-color: #ffffff;
+    }
+
+    .input-area {
+      display: flex;
+      align-items: flex-end;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 8px 12px;
+      background-color: #ffffff;
+      box-shadow: var(--shadow);
+    }
+
+    .input-area:focus-within {
+      border-color: var(--primary-color);
+      box-shadow: 0 0 0 2px rgba(16, 163, 127, 0.1);
+    }
+
+    #userInput {
+      flex: 1;
+      border: none;
+      outline: none;
+      resize: none;
+      font-size: 16px;
+      line-height: 1.5;
+      max-height: 200px;
+      min-height: 24px;
+      padding: 8px 0;
+      font-family: inherit;
+    }
+
+    #sendBtn {
+      background-color: var(--primary-color);
+      color: white;
+      border: none;
+      border-radius: 4px;
+      padding: 8px 12px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #sendBtn:hover {
+      background-color: var(--primary-hover);
+    }
+
+    #sendBtn:disabled {
+      background-color: #c2c8d0;
+      cursor: not-allowed;
+    }
+
+    .typing-indicator {
+      display: flex;
+      gap: 4px;
+      padding: 4px 0;
+    }
+
+    .typing-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background-color: var(--light-text);
+      animation: typingAnimation 1.4s infinite ease-in-out;
+    }
+
+    .typing-dot:nth-child(1) {
+      animation-delay: 0s;
+    }
+
+    .typing-dot:nth-child(2) {
+      animation-delay: 0.2s;
+    }
+
+    .typing-dot:nth-child(3) {
+      animation-delay: 0.4s;
+    }
+
+    @keyframes typingAnimation {
+      0%, 60%, 100% {
+        transform: translateY(0);
+        opacity: 0.5;
+      }
+      30% {
+        transform: translateY(-5px);
+        opacity: 1;
+      }
+    }
+
+    .welcome-message {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--light-text);
+    }
+
+    .welcome-message h2 {
+      font-size: 32px;
+      margin-bottom: 16px;
+      font-weight: 600;
+      color: var(--text-color);
+    }
+
+    .welcome-message p {
+      font-size: 16px;
+      margin-bottom: 24px;
+    }
+
+    .example-prompts {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 12px;
+      margin-top: 24px;
+    }
+
+    .example-prompt {
+      padding: 12px;
+      background-color: #f7f7f8;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      text-align: left;
+      border: 1px solid transparent;
+    }
+
+    .example-prompt:hover {
+      background-color: #ececf1;
+    }
+
+    @media (max-width: 768px) {
+      .header {
+        padding: 10px 16px;
+      }
+      
+      .header h1 {
+        font-size: 16px;
+      }
+      
+      #messages {
+        padding: 16px;
+      }
+      
+      .input-container {
+        padding: 16px;
+      }
+      
+      .example-prompts {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>
+      <span>Gemini 2.0 Flash</span>
+    </h1>
+    <div class="header-actions">
+      <button id="clearBtn">Clear Conversation</button>
+    </div>
+  </div>
+
+  <div class="chat-container">
+    <div id="messages">
+      <div class="welcome-message">
+        <h2>Gemini 2.0 Flash</h2>
+        <p>Ask me anything and I'll help you find the answers.</p>
+        <div class="example-prompts">
+          <div class="example-prompt" data-prompt="Explain quantum computing in simple terms">Explain quantum computing in simple terms</div>
+          <div class="example-prompt" data-prompt="Write a Python function to calculate Fibonacci numbers">Write a Python function to calculate Fibonacci numbers</div>
+          <div class="example-prompt" data-prompt="What are the benefits of renewable energy?">What are the benefits of renewable energy?</div>
+          <div class="example-prompt" data-prompt="Suggest a 3-day itinerary for visiting Tokyo">Suggest a 3-day itinerary for visiting Tokyo</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="input-container">
+      <div class="input-area">
+        <textarea id="userInput" placeholder="Message Gemini 2.0 Flash..." rows="1"></textarea>
+        <button id="sendBtn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M22 2L11 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M22 2L15 22L11 13L2 9L22 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API_KEY = "AIzaSyBAtpLXcB6-z3LTK9GASAxs07j9HOD8KB4"; // 🔑 Replace with your API key
+    const MODEL = "gemini-2.0-flash";
+    const messagesDiv = document.getElementById("messages");
+    const userInput = document.getElementById("userInput");
+    const sendBtn = document.getElementById("sendBtn");
+    const clearBtn = document.getElementById("clearBtn");
+    const examplePrompts = document.querySelectorAll('.example-prompt');
+
+    // Auto-resize textarea
+    userInput.addEventListener('input', function() {
+      this.style.height = 'auto';
+      this.style.height = (this.scrollHeight) + 'px';
+    });
+
+    // Add welcome message removal on first interaction
+    let isFirstInteraction = true;
+
+    function addMessage(text, sender) {
+      // Remove welcome message on first interaction
+      if (isFirstInteraction) {
+        const welcomeMessage = document.querySelector('.welcome-message');
+        if (welcomeMessage) {
+          welcomeMessage.remove();
+        }
+        isFirstInteraction = false;
+      }
+
+      const message = document.createElement("div");
+      message.className = "message " + sender;
+      
+      const avatar = document.createElement("div");
+      avatar.className = "message-avatar";
+      avatar.textContent = sender === "user" ? "U" : "G";
+      
+      const content = document.createElement("div");
+      content.className = "message-content";
+      
+      if (sender === "bot" && text === "Thinking...") {
+        const typingIndicator = document.createElement("div");
+        typingIndicator.className = "typing-indicator";
+        for (let i = 0; i < 3; i++) {
+          const dot = document.createElement("div");
+          dot.className = "typing-dot";
+          typingIndicator.appendChild(dot);
+        }
+        content.appendChild(typingIndicator);
+      } else {
+        content.textContent = text;
+      }
+      
+      message.appendChild(avatar);
+      message.appendChild(content);
+      messagesDiv.appendChild(message);
+      messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    }
+
+    function addTypingIndicator() {
+      addMessage("Thinking...", "bot");
+    }
+
+    function removeTypingIndicator() {
+      const lastMessage = messagesDiv.lastChild;
+      if (lastMessage && lastMessage.querySelector('.typing-indicator')) {
+        lastMessage.remove();
+      }
+    }
+
+    async function sendMessage() {
+      const inputText = userInput.value.trim();
+      if (!inputText) return;
+
+      // Disable send button during request
+      sendBtn.disabled = true;
+      
+      addMessage(inputText, "user");
+      userInput.value = "";
+      userInput.style.height = 'auto';
+      
+      addTypingIndicator();
+
+      const body = {
+        contents: [{ role: "user", parts: [{ text: inputText }] }]
+      };
+
+      try {
+        const res = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${API_KEY}`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body)
+          }
+        );
+
+        const data = await res.json();
+        removeTypingIndicator();
+        const reply = data?.candidates?.[0]?.content?.parts?.[0]?.text || "⚠️ No response.";
+        addMessage(reply, "bot");
+      } catch (err) {
+        removeTypingIndicator();
+        addMessage("Error: " + err.message, "bot");
+      } finally {
+        // Re-enable send button
+        sendBtn.disabled = false;
+        userInput.focus();
+      }
+    }
+
+    // Clear conversation
+    clearBtn.addEventListener("click", function() {
+      messagesDiv.innerHTML = `
+        <div class="welcome-message">
+          <h2>Gemini 2.0 Flash</h2>
+          <p>Ask me anything and I'll help you find the answers.</p>
+          <div class="example-prompts">
+            <div class="example-prompt" data-prompt="Explain quantum computing in simple terms">Explain quantum computing in simple terms</div>
+            <div class="example-prompt" data-prompt="Write a Python function to calculate Fibonacci numbers">Write a Python function to calculate Fibonacci numbers</div>
+            <div class="example-prompt" data-prompt="What are the benefits of renewable energy?">What are the benefits of renewable energy?</div>
+            <div class="example-prompt" data-prompt="Suggest a 3-day itinerary for visiting Tokyo">Suggest a 3-day itinerary for visiting Tokyo</div>
+          </div>
+        </div>
+      `;
+      
+      // Reattach event listeners to example prompts
+      document.querySelectorAll('.example-prompt').forEach(prompt => {
+        prompt.addEventListener('click', function() {
+          userInput.value = this.getAttribute('data-prompt');
+          userInput.focus();
+          userInput.dispatchEvent(new Event('input'));
+        });
+      });
+      
+      isFirstInteraction = true;
+    });
+
+    // Send message on button click
+    sendBtn.addEventListener("click", sendMessage);
+
+    // Send message on Enter key (but allow Shift+Enter for new line)
+    userInput.addEventListener("keydown", e => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage();
+      }
+    });
+
+    // Example prompts
+    examplePrompts.forEach(prompt => {
+      prompt.addEventListener('click', function() {
+        userInput.value = this.getAttribute('data-prompt');
+        userInput.focus();
+        userInput.dispatchEvent(new Event('input'));
+      });
+    });
+
+    // Focus input on load
+    userInput.focus();
+  </script>
+</body>
+</html>
